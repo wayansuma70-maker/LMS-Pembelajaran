@@ -125,7 +125,9 @@ const PAGES = {
 
   async pengguna() {
     const [us, k] = await Promise.all([list('Users'), list('Kelas')]);
-    return `<h1>Kelola Pengguna</h1><br>${FORM('Users', [['nama', 'Nama lengkap'], ['username', 'Username'], ['email', 'Email', 'email'], ['password', 'Kata sandi', 'password'], ['role', 'Peran', 'select', [['siswa', 'Siswa'], ['guru', 'Guru'], ['admin', 'Admin']]], ['kelas', 'Kelas (siswa)', 'select', [['', '—'], ...opt(k, 'id', 'nama')]]], '+ Tambah Akun')}
+    return `<h1>Kelola Pengguna</h1><br><div class="card" style="margin-bottom:16px"><b>📥 Impor Akun dari Excel</b><small>Unduh templat, isi data guru/siswa (satu akun per baris), lalu unggah. Kolom: nama, username, email, password, role (siswa/guru/admin), kelas.</small>
+    <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn soft" id="tpl">⬇ Unduh Templat Excel</button><input type="file" id="xl" accept=".xlsx,.xls,.csv" style="max-width:300px;margin:0"><button class="btn" id="imp">Impor Sekarang</button></div><div id="impRes" style="margin-top:12px"></div></div>
+    ${FORM('Users', [['nama', 'Nama lengkap'], ['username', 'Username'], ['email', 'Email', 'email'], ['password', 'Kata sandi', 'password'], ['role', 'Peran', 'select', [['siswa', 'Siswa'], ['guru', 'Guru'], ['admin', 'Admin']]], ['kelas', 'Kelas (siswa)', 'select', [['', '—'], ...opt(k, 'id', 'nama')]]], '+ Tambah Akun')}
     <div class="scroll"><table><thead><tr><th>Nama</th><th>Username</th><th>Email</th><th>Peran</th><th>Kelas</th></tr></thead><tbody>${us.map(x => `<tr><td>${esc(x.nama)}</td><td>${esc(x.username)}</td><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${esc(x.kelas)}</td></tr>`).join('')}</tbody></table></div>`;
   }
 };
@@ -163,8 +165,39 @@ document.addEventListener('click', async e => {
   try {
     if (t.matches('[data-save]')) { const tr = t.closest('tr'); busy(true); await api('grade', { id: tr.dataset.id, nilai: tr.querySelector('.n').value, komentar: tr.querySelector('.k').value }); toast('Nilai tersimpan ✔'); busy(false); }
     if (t.id === 'saveAbsen') { const f = $('#absen'); busy(true); await api('absen', { mapel_id: f.mapel_id.value, tanggal: f.tanggal.value, items: [...document.querySelectorAll('tr[data-s]')].map(r => ({ siswa_id: r.dataset.s, status: r.querySelector('select').value })) }); toast('Presensi tersimpan ✔'); busy(false); }
+    if (t.id === 'tpl') downloadTemplate();
+    if (t.id === 'imp') await importExcel();
     if (t.id === 'rekap') { busy(true); const r = await api('rekap'); const a = document.createElement('a'); a.href = 'data:application/pdf;base64,' + r.b64; a.download = r.nama; a.click(); busy(false); }
   } catch (err) { busy(false); toast(err.message, 1); }
 });
+
+// ---------- Impor akun dari Excel ----------
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+    { nama: 'Budi Santoso', username: 'budi.s', email: 'budi@sekolah.sch.id', password: 'Rahasia123', role: 'siswa', kelas: 'XI IPA 2' },
+    { nama: 'Ibu Sari', username: 'sari.guru', email: 'sari@sekolah.sch.id', password: 'Rahasia123', role: 'guru', kelas: '' }
+  ]), 'Akun');
+  XLSX.writeFile(wb, 'Templat-Impor-Akun.xlsx');
+}
+async function importExcel() {
+  const file = $('#xl').files[0], box = $('#impRes');
+  if (!file) return toast('Pilih file Excel dulu', 1);
+  busy(true);
+  try {
+    const wb = XLSX.read(await file.arrayBuffer());
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+      .map((r, i) => ({ ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim().toLowerCase(), v])), baris: i + 2 }));
+    if (!data.length) throw new Error('File kosong');
+    let ok = 0, gagal = [];
+    for (let i = 0; i < data.length; i += 100) { // kirim per 100 baris
+      const r = await api('importUsers', { items: data.slice(i, i + 100) });
+      ok += r.berhasil; gagal = gagal.concat(r.gagal);
+    }
+    toast(`${ok} akun berhasil diimpor ✔`);
+    await go('pengguna');
+    $('#impRes').innerHTML = `<div class="card" style="background:#F0FDF4">✅ <b>${ok}</b> akun berhasil, ❌ <b>${gagal.length}</b> gagal.${gagal.length ? '<ul style="margin:8px 0 0 18px">' + gagal.map(g => `<li>Baris ${g.baris}: ${esc(g.alasan)}</li>`).join('') + '</ul>' : ''}</div>`;
+  } catch (err) { toast(err.message, 1); box.innerHTML = ''; busy(false); }
+}
 
 start();
