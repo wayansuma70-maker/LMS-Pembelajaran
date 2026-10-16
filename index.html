@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduLMS Pintar — Pembelajaran Daring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="login" class="login hidden">
+  <form id="loginForm" class="login-card">
+    <div class="logo big">📘</div>
+    <h1>EduLMS Pintar</h1>
+    <p>Masuk dengan akun yang didaftarkan Admin sekolah.</p>
+    <label>Username<input id="lu" autocomplete="username" required></label>
+    <label>Kata sandi<input id="lp" type="password" autocomplete="current-password" required></label>
+    <button class="btn" style="width:100%">Masuk</button>
+  </form>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="side" id="side">
+    <div class="brand"><div class="logo">📘</div><div><b>EduLMS Pintar</b><small>Pembelajaran Daring</small></div></div>
+    <small class="menu-title">MENU UTAMA</small>
+    <nav id="menu"></nav>
+    <button class="logout" id="logout">⎋ Keluar Sistem</button>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <button class="burger" id="burger">☰</button>
+      <input id="search" class="search" placeholder="🔍 Cari di halaman ini…">
+      <div class="who"><div><b id="uName"></b><small id="uRole"></small></div><div class="avatar" id="uAv"></div></div>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<div id="busy" class="busy hidden"><div class="spin"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
